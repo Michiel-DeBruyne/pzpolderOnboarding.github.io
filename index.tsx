@@ -119,12 +119,12 @@ const LoginScreen = ({ onLogin, admins, departments }: { onLogin: (u: User) => v
                     >
                         {admins.map(a => {
                             const dept = departments.find(d => d.id === a.dienstId);
-                            return <option key={a.id} value={a.id}>{a.name} ({dept?.name || 'SuperUser'})</option>;
+                            return <option key={a.id} value={a.id}>{a.name} ({dept?.name || 'Hoofdbeheer'})</option>;
                         })}
                     </select>
                 </div>
                 <button className="sso-button" onClick={handleLogin} disabled={isLoading || !selectedAdminId}>
-                    {isLoading ? 'Bezig...' : 'Aanmelden'}
+                    {isLoading ? 'Bezig met laden...' : 'Aanmelden'}
                 </button>
             </div>
         </div>
@@ -173,7 +173,7 @@ const TaskCard = ({ task, onToggle, isTemplate = false, onDelete, canEdit = true
 
 const App = () => {
     const [state, setState] = useState<AppState>(() => {
-        const saved = localStorage.getItem('onboarding_v6_state');
+        const saved = localStorage.getItem('onboarding_v7_state');
         if (saved) return JSON.parse(saved);
         return {
             user: null,
@@ -209,7 +209,7 @@ const App = () => {
     const [confirmDeleteDept, setConfirmDeleteDept] = useState<string | null>(null);
 
     useEffect(() => {
-        localStorage.setItem('onboarding_v6_state', JSON.stringify(state));
+        localStorage.setItem('onboarding_v7_state', JSON.stringify(state));
     }, [state]);
 
     const handleLogin = (user: User) => setState(prev => ({ ...prev, user, filterDienstId: 'All', employeeSearchQuery: '' }));
@@ -353,27 +353,28 @@ const App = () => {
                         <header className="dashboard-header">
                             <div className="header-flex">
                                 <h1>{state.view === 'employees' ? 'Medewerkers Onboarding' : 'Medewerkers Offboarding'}</h1>
-                                <div style={{ display: 'flex', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                     <div className="search-container" style={{ position: 'relative' }}>
                                         <input 
                                             type="text" 
-                                            placeholder="Medewerker zoeken..." 
+                                            placeholder="Zoek medewerker..." 
                                             className="search-input"
                                             value={state.employeeSearchQuery}
                                             onChange={(e) => setState(p => ({ ...p, employeeSearchQuery: e.target.value }))}
                                             style={{
-                                                padding: '10px 16px',
-                                                borderRadius: '4px',
+                                                padding: '10px 32px 10px 12px',
+                                                borderRadius: '6px',
                                                 border: '1px solid var(--border)',
                                                 background: 'var(--input-bg)',
                                                 color: 'var(--text)',
-                                                width: '240px'
+                                                width: '240px',
+                                                fontSize: '14px'
                                             }}
                                         />
                                         {state.employeeSearchQuery && (
                                             <button 
                                                 onClick={() => setState(p => ({ ...p, employeeSearchQuery: '' }))}
-                                                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '18px' }}
                                             >
                                                 &times;
                                             </button>
@@ -389,7 +390,7 @@ const App = () => {
                             <table className="employee-table">
                                 <thead>
                                     <tr>
-                                        <th>Naam</th><th>Dienst</th><th>Datum</th><th>Voortgang</th><th style={{ textAlign: 'right' }}>Acties</th>
+                                        <th>Naam</th><th>Dienst</th><th>Startdatum</th><th>Voortgang</th><th style={{ textAlign: 'right' }}>Acties</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -408,16 +409,16 @@ const App = () => {
                                                 <td>{emp.startDate}</td>
                                                 <td><ProgressBar percent={percent} /></td>
                                                 <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                                                    <button className="icon-btn edit" onClick={() => setEditingEmployee(emp)}>✎</button>
+                                                    <button className="icon-btn edit" onClick={() => setEditingEmployee(emp)} title="Bewerken">✎</button>
                                                     {emp.status === 'onboarding' && (
-                                                        <button className="icon-btn offboard" onClick={() => startOffboarding(emp.id)}>Offboarden</button>
+                                                        <button className="icon-btn offboard" onClick={() => startOffboarding(emp.id)} title="Verplaats naar Offboarding">Offboarden</button>
                                                     )}
-                                                    <button className="icon-btn delete" onClick={() => setConfirmDeleteEmp(emp.id)}>🗑</button>
+                                                    <button className="icon-btn delete" onClick={() => setConfirmDeleteEmp(emp.id)} title="Verwijderen">🗑</button>
                                                 </td>
                                             </tr>
                                         );
                                     }) : (
-                                        <tr><td colSpan={5} style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>Geen medewerkers gevonden.</td></tr>
+                                        <tr><td colSpan={5} style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>Geen resultaten gevonden voor "{state.employeeSearchQuery}".</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -428,7 +429,7 @@ const App = () => {
                 {/* Checklist View */}
                 {state.view === 'checklist' && selectedEmployee && (
                     <div className="checklist-view">
-                        <button className="back-link" onClick={() => setState(p => ({ ...p, view: selectedEmployee.status === 'offboarding' ? 'offboarding' : 'employees', selectedEmployeeId: null }))}>← Terug</button>
+                        <button className="back-link" onClick={() => setState(p => ({ ...p, view: selectedEmployee.status === 'offboarding' ? 'offboarding' : 'employees', selectedEmployeeId: null }))}>← Terug naar overzicht</button>
                         <header className="dashboard-header">
                             <div className="header-flex">
                                 <h1>Checklist: {selectedEmployee.name}</h1>
@@ -440,21 +441,21 @@ const App = () => {
                                         onChange={(e) => setState(p => ({ ...p, showOnlyIncomplete: e.target.checked }))} 
                                         style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                                     />
-                                    <label htmlFor="incompleteOnly" style={{ cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>Alleen onvoltooid tonen</label>
+                                    <label htmlFor="incompleteOnly" style={{ cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>Toon alleen onvoltooid</label>
                                 </div>
                             </div>
                             <div className="filters">
                                 <div className="filter-group">
                                     <label>Filter Dienst:</label>
                                     <select value={state.filterDienstId} onChange={(e) => setState(p => ({ ...p, filterDienstId: e.target.value }))}>
-                                        <option value="All">Alle</option>
+                                        <option value="All">Alle diensten</option>
                                         {state.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="filter-group">
                                     <label>Categorie:</label>
                                     <select value={state.filterCategory} onChange={(e) => setState(p => ({ ...p, filterCategory: e.target.value as any }))}>
-                                        <option value="All">Alle</option>
+                                        <option value="All">Alle categorieën</option>
                                         <option value="Account">Account</option><option value="Hardware">Hardware</option>
                                         <option value="Software">Software</option><option value="Toegang">Toegang</option>
                                     </select>
@@ -466,7 +467,7 @@ const App = () => {
                                 <TaskCard key={task.id} task={task} onToggle={toggleEmployeeTask} departments={state.departments} />
                             )) : (
                                 <div style={{textAlign: 'center', padding: '60px', background: 'var(--surface)', borderRadius: '8px', border: '1px dashed var(--border)', color: 'var(--text-muted)'}}>
-                                    Geen taken gevonden voor de huidige filters.
+                                    Er zijn geen taken die voldoen aan de geselecteerde filters.
                                 </div>
                             )}
                         </div>
@@ -476,7 +477,7 @@ const App = () => {
                 {/* Template Managers */}
                 {(state.view === 'template_onboarding' || state.view === 'template_offboarding') && (
                     <div className="template-manager">
-                        <h1>{state.view === 'template_onboarding' ? 'Onboarding Template' : 'Offboarding Template'}</h1>
+                        <h1>{state.view === 'template_onboarding' ? 'Onboarding Template Beheer' : 'Offboarding Template Beheer'}</h1>
                         <div className="add-task-form">
                             <form onSubmit={(e) => {
                                 e.preventDefault();
@@ -490,7 +491,7 @@ const App = () => {
                                 form.reset();
                             }}>
                                 <div className="form-row">
-                                    <input name="title" placeholder="Taak Titel" required /><input name="desc" placeholder="Beschrijving" />
+                                    <input name="title" placeholder="Taak Titel" required /><input name="desc" placeholder="Beschrijving (optioneel)" />
                                 </div>
                                 <div className="form-row">
                                     <select name="dienstId" required>
@@ -500,7 +501,7 @@ const App = () => {
                                         <option value="Account">Account</option><option value="Hardware">Hardware</option>
                                         <option value="Software">Software</option><option value="Toegang">Toegang</option>
                                     </select>
-                                    <button type="submit" className="primary-action-btn">Toevoegen</button>
+                                    <button type="submit" className="primary-action-btn">Taak Toevoegen</button>
                                 </div>
                             </form>
                         </div>
@@ -522,10 +523,10 @@ const App = () => {
                         <button className="primary-action-btn" onClick={() => setIsAddDeptModalOpen(true)}>+ Nieuwe Dienst</button>
                         <div className="employee-list-container" style={{ marginTop: '20px' }}>
                             <table className="employee-table">
-                                <thead><tr><th>Naam</th><th style={{ textAlign: 'right' }}>Acties</th></tr></thead>
+                                <thead><tr><th>Dienstnaam</th><th style={{ textAlign: 'right' }}>Acties</th></tr></thead>
                                 <tbody>
                                     {state.departments.map(d => (
-                                        <tr key={d.id}><td><strong>{d.name}</strong></td><td style={{ textAlign: 'right' }}><button className="icon-btn delete" onClick={() => setConfirmDeleteDept(d.id)}>🗑</button></td></tr>
+                                        <tr key={d.id}><td><strong>{d.name}</strong></td><td style={{ textAlign: 'right' }}><button className="icon-btn delete" onClick={() => setConfirmDeleteDept(d.id)} title="Dienst verwijderen">🗑</button></td></tr>
                                     ))}
                                 </tbody>
                             </table>
@@ -539,10 +540,10 @@ const App = () => {
                         <button className="primary-action-btn" onClick={() => setIsAddAdminModalOpen(true)}>+ Nieuwe Admin</button>
                         <div className="employee-list-container" style={{ marginTop: '20px' }}>
                             <table className="employee-table">
-                                <thead><tr><th>Naam</th><th>Email</th><th>Dienst</th><th style={{ textAlign: 'right' }}>Acties</th></tr></thead>
+                                <thead><tr><th>Naam</th><th>Email</th><th>Gekoppelde Dienst</th><th style={{ textAlign: 'right' }}>Acties</th></tr></thead>
                                 <tbody>
                                     {state.admins.map(a => (
-                                        <tr key={a.id}><td><strong>{a.name}</strong></td><td>{a.email}</td><td><span className="emp-dept-badge">{state.departments.find(d => d.id === a.dienstId)?.name}</span></td><td style={{ textAlign: 'right' }}><button className="icon-btn delete" onClick={() => setState(p => ({ ...p, admins: p.admins.filter(ad => ad.id !== a.id) }))}>🗑</button></td></tr>
+                                        <tr key={a.id}><td><strong>{a.name}</strong></td><td>{a.email}</td><td><span className="emp-dept-badge">{state.departments.find(d => d.id === a.dienstId)?.name || 'Geen'}</span></td><td style={{ textAlign: 'right' }}><button className="icon-btn delete" onClick={() => setState(p => ({ ...p, admins: p.admins.filter(ad => ad.id !== a.id) }))} title="Admin verwijderen">🗑</button></td></tr>
                                     ))}
                                 </tbody>
                             </table>
@@ -557,7 +558,7 @@ const App = () => {
                 onClose={() => setConfirmDeleteEmp(null)}
                 onConfirm={() => confirmDeleteEmp && deleteEmployee(confirmDeleteEmp)}
                 title="Medewerker verwijderen"
-                message="Weet u zeker dat u deze medewerker wilt verwijderen? Alle voortgang en data gaan onherroepelijk verloren."
+                message="Weet u zeker dat u deze medewerker wilt verwijderen? Alle voortgang en taken voor deze persoon gaan onherroepelijk verloren."
                 confirmText="Verwijderen"
             />
 
@@ -566,36 +567,36 @@ const App = () => {
                 onClose={() => setConfirmDeleteDept(null)}
                 onConfirm={() => confirmDeleteDept && deleteDepartment(confirmDeleteDept)}
                 title="Dienst verwijderen"
-                message="Weet u zeker dat u deze dienst wilt verwijderen? Dit kan invloed hebben op medewerkers en taken die aan deze dienst zijn gekoppeld."
+                message="Weet u zeker dat u deze dienst wilt verwijderen? Dit kan gevolgen hebben voor admins en taken die aan deze dienst gekoppeld zijn."
                 confirmText="Dienst verwijderen"
             />
 
             {/* Modals */}
-            <Modal isOpen={isEmpModalOpen} onClose={() => setIsEmpModalOpen(false)} title={`Medewerker ${empModalStatus}`}>
+            <Modal isOpen={isEmpModalOpen} onClose={() => setIsEmpModalOpen(false)} title={`Medewerker Toevoegen (${empModalStatus})`}>
                 <form className="add-emp-form" onSubmit={(e) => {
                     e.preventDefault();
                     const form = e.target as any;
                     createEmployee(form.name.value, form.deptId.value, empModalStatus);
                 }}>
-                    <div className="form-group"><label>Naam</label><input name="name" required autoFocus /></div>
+                    <div className="form-group"><label>Volledige Naam</label><input name="name" required autoFocus /></div>
                     <div className="form-group">
-                        <label>Dienst</label>
+                        <label>Afdeling / Dienst</label>
                         <select name="deptId">
                             {state.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                     </div>
-                    <div className="modal-footer"><button type="submit" className="primary-action-btn">Aanmaken</button></div>
+                    <div className="modal-footer"><button type="submit" className="primary-action-btn">Medewerker Aanmaken</button></div>
                 </form>
             </Modal>
 
-            <Modal isOpen={isAddDeptModalOpen} onClose={() => setIsAddDeptModalOpen(false)} title="Nieuwe Dienst">
+            <Modal isOpen={isAddDeptModalOpen} onClose={() => setIsAddDeptModalOpen(false)} title="Nieuwe Dienst Toevoegen">
                 <form className="add-emp-form" onSubmit={(e) => { e.preventDefault(); addDepartment((e.target as any).name.value); }}>
-                    <div className="form-group"><label>Dienst Naam</label><input name="name" required /></div>
+                    <div className="form-group"><label>Dienst Naam</label><input name="name" placeholder="Bijv. Marketing, HR, etc." required /></div>
                     <div className="modal-footer"><button type="submit" className="primary-action-btn">Toevoegen</button></div>
                 </form>
             </Modal>
 
-            <Modal isOpen={isAddAdminModalOpen} onClose={() => setIsAddAdminModalOpen(false)} title="Nieuwe Admin">
+            <Modal isOpen={isAddAdminModalOpen} onClose={() => setIsAddAdminModalOpen(false)} title="Nieuwe Administrator">
                 <form className="add-emp-form" onSubmit={(e) => {
                     e.preventDefault();
                     const form = e.target as any;
@@ -606,18 +607,18 @@ const App = () => {
                     <div className="form-group"><label>Naam</label><input name="name" required /></div>
                     <div className="form-group"><label>Email</label><input name="email" type="email" required /></div>
                     <div className="form-group">
-                        <label>Dienst</label>
+                        <label>Gekoppelde Dienst</label>
                         <select name="dienstId">{state.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
                     </div>
                     <div className="form-group">
-                        <label>Rol</label>
-                        <select name="role"><option value="Admin">Admin</option><option value="SuperUser">SuperUser (IT)</option></select>
+                        <label>Rechtenniveau</label>
+                        <select name="role"><option value="Admin">Afdeling-Admin</option><option value="SuperUser">SuperUser (IT/Hoofdbeheer)</option></select>
                     </div>
-                    <div className="modal-footer"><button type="submit" className="primary-action-btn">Toevoegen</button></div>
+                    <div className="modal-footer"><button type="submit" className="primary-action-btn">Admin Opslaan</button></div>
                 </form>
             </Modal>
 
-            <Modal isOpen={!!editingEmployee} onClose={() => setEditingEmployee(null)} title="Medewerker Bewerken">
+            <Modal isOpen={!!editingEmployee} onClose={() => setEditingEmployee(null)} title="Gegevens Bewerken">
                 {editingEmployee && (
                     <form className="add-emp-form" onSubmit={(e) => {
                         e.preventDefault();
@@ -629,7 +630,7 @@ const App = () => {
                             <label>Dienst</label>
                             <select name="deptId" defaultValue={editingEmployee.departmentId}>{state.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
                         </div>
-                        <div className="modal-footer"><button type="submit" className="primary-action-btn">Opslaan</button></div>
+                        <div className="modal-footer"><button type="submit" className="primary-action-btn">Wijzigingen Opslaan</button></div>
                     </form>
                 )}
             </Modal>
