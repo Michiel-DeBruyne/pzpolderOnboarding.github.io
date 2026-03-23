@@ -1,0 +1,118 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "A person being onboarded or offboarded",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the employee" },
+        "email": { "type": "string", "format": "email", "description": "Work email" },
+        "departmentId": { "type": "string", "description": "ID of the department" },
+        "status": { "type": "string", "enum": ["onboarding", "offboarding", "completed"], "description": "Current status" },
+        "startDate": { "type": "string", "format": "date", "description": "Start or end date" },
+        "reason": { "type": "string", "description": "Reason for onboarding/offboarding" },
+        "createdBy": { "type": "string", "description": "UID of the admin who created this record" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "welcomeEmailSent": { "type": "boolean" },
+        "exitSurveySent": { "type": "boolean" }
+      },
+      "required": ["name", "departmentId", "status", "createdBy"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A specific onboarding/offboarding task for an employee",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string", "description": "ID of the employee" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Account", "Hardware", "Software", "Toegang", "Other"] },
+        "departmentId": { "type": "string", "description": "Department responsible for this task" },
+        "dateType": { "type": "string", "enum": ["relative", "fixed"] },
+        "relativeDueDate": { "type": "integer" },
+        "dueDate": { "type": "string", "format": "date", "description": "Deadline for this task" },
+        "notificationEmail": { "type": "string", "format": "email", "description": "Specific email for notifications" },
+        "isCompleted": { "type": "boolean" },
+        "completedBy": { "type": "string", "description": "Name of the person who completed it" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "docLink": { "type": "string", "description": "URL to documentation" },
+        "reminderSent": { "type": "boolean", "description": "Whether a reminder email has been sent" },
+        "isPrerequisite": { "type": "boolean", "description": "Whether this task must be finished before the welcome email is sent" }
+      },
+      "required": ["employeeId", "title", "departmentId", "isCompleted"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "Organizational unit (Wijk, Lik, Interventie, ICT)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "enum": ["wijk", "lik", "interventie", "ICT"] },
+        "defaultEmail": { "type": "string", "format": "email", "description": "Default email for this department" }
+      },
+      "required": ["name"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Admin user profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "superuser"] },
+        "departmentId": { "type": "string", "description": "Department this admin belongs to" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "TemplateTask": {
+      "title": "TemplateTask",
+      "description": "Default tasks for onboarding/offboarding",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "type": { "type": "string", "enum": ["onboarding", "offboarding"] },
+        "dateType": { "type": "string", "enum": ["relative", "fixed"] },
+        "relativeDueDate": { "type": "integer", "description": "Days relative to start/end date (e.g. -7 for one week before)" },
+        "dueDate": { "type": "string", "format": "date" },
+        "applicableReasons": { "type": "array", "items": { "type": "string" } },
+        "docLink": { "type": "string", "description": "URL to documentation" },
+        "isPrerequisite": { "type": "boolean", "description": "Whether this task must be finished before the welcome email is sent" }
+      },
+      "required": ["title", "departmentId", "type"]
+    },
+    "EmailTemplate": {
+      "title": "EmailTemplate",
+      "description": "Customizable email templates for automation",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["welcome", "exit"] },
+        "subject": { "type": "string" },
+        "body": { "type": "string", "description": "HTML body with placeholders like {{name}}" }
+      },
+      "required": ["type", "subject", "body"]
+    },
+    "SmtpConfig": {
+      "title": "SmtpConfig",
+      "description": "SMTP configuration for sending emails",
+      "type": "object",
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "integer" },
+        "user": { "type": "string" },
+        "pass": { "type": "string" },
+        "from": { "type": "string", "format": "email" }
+      }
+    }
+  },
+  "firestore": {
+    "/employees": { "schema": "Employee", "description": "List of employees" },
+    "/employees/{employeeId}/tasks": { "schema": "Task", "description": "Tasks for a specific employee" },
+    "/departments": { "schema": "Department", "description": "Available departments" },
+    "/users": { "schema": "User", "description": "Admin profiles" },
+    "/templateTasks": { "schema": "TemplateTask", "description": "Global task templates" },
+    "/emailTemplates": { "schema": "EmailTemplate", "description": "Customizable email templates" },
+    "/settings": { "schema": "object", "description": "Global application settings" }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "AI Onboarding Portal",
+  "description": "A modern onboarding and offboarding portal powered by Gemini 3 Flash and Firebase real-time collaboration.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

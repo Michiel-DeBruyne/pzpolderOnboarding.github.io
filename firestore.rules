@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: name (string), email (string), role (string), departmentId (string)
+    //
+    // Collection: departments
+    // Fields: name (string), defaultEmail (string)
+    //
+    // Collection: employees
+    // Fields: name (string), email (string), departmentId (string), status (string), startDate (string), reason (string), createdBy (string), createdAt (timestamp)
+    //
+    // Collection: employees/{empId}/tasks
+    // Fields: employeeId (string), title (string), description (string), category (string), departmentId (string), isCompleted (bool), completedBy (string), completedAt (timestamp), docLink (string), dateType (string), relativeDueDate (int), dueDate (string), notificationEmail (string), reminderSent (bool)
+    //
+    // Collection: templateTasks
+    // Fields: title (string), description (string), category (string), departmentId (string), type (string), applicableReasons (list), docLink (string), dateType (string), relativeDueDate (int), dueDate (string)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superuser')) ||
+         (request.auth.token.email.lower() == "xxsjogsxx69@gmail.com"));
+    }
+
+    function isSuperUser() {
+      return isAuthenticated() && 
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superuser') ||
+         (request.auth.token.email.lower() == "xxsjogsxx69@gmail.com"));
+    }
+
+    function isDeptAdmin(deptId) {
+      return isAuthenticated() && (
+        isSuperUser() || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.departmentId == deptId)
+      );
+    }
+
+    function isValidUser(data) {
+      return data.name is string && data.name.size() < 100 &&
+             data.email is string && data.email.size() < 100;
+    }
+
+    function isValidEmployee(data) {
+      return data.name is string && data.name.size() < 100 &&
+             data.status in ['onboarding', 'offboarding', 'completed'];
+    }
+
+    function isValidTask(data) {
+      return data.title is string && data.title.size() < 200 &&
+             (!('docLink' in data) || (data.docLink is string && data.docLink.size() < 500)) &&
+             (!('notificationEmail' in data) || (data.notificationEmail is string && data.notificationEmail.size() < 200)) &&
+             (!('dateType' in data) || (data.dateType in ['relative', 'fixed']));
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (isSuperUser() || request.auth.uid == userId);
+      allow update: if isAuthenticated() && (isSuperUser() || request.auth.uid == userId);
+      allow delete: if isSuperUser();
+    }
+
+    match /departments/{deptId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperUser();
+    }
+
+    match /employees/{empId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() && isValidEmployee(request.resource.data);
+      allow update: if isAdmin() && isValidEmployee(request.resource.data);
+      allow delete: if isSuperUser();
+
+      match /tasks/{taskId} {
+        allow read: if isAuthenticated();
+        allow create: if isAdmin() && isValidTask(request.resource.data);
+        allow update: if isAuthenticated() && isValidTask(request.resource.data) && (
+          isSuperUser() || 
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.departmentId == resource.data.departmentId ||
+            resource.data.departmentId == 'default')) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reminderSent'])) // Allow superuser/system to mark reminder as sent
+        );
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /templateTasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow create: if isSuperUser() && isValidTask(request.resource.data);
+      allow update: if isSuperUser() && isValidTask(request.resource.data);
+      allow delete: if isSuperUser();
+    }
+
+    match /emailTemplates/{templateId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperUser();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperUser();
+    }
+    
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
